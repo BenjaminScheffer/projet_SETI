@@ -1,0 +1,18 @@
+import java.rmi.server.UnicastRemoteObject;
+import java.rmi.registry.Registry;
+import java.rmi.registry.LocateRegistry;
+import java.rmi.Remote;
+import java.rmi.RemoteException;
+import java.rmi.server.ServerNotActiveException;
+
+public class LancerService{
+    public static void main(String args[])throws RemoteException{
+	Classe de l'instance d = new Classe de l'instance ();
+	//Cast l'object pour lui attribuer un port 
+	interface s = (Interface) UnicastRemoteObject.exportObject(d,0);//0 pour que le system lui attribut tout seul
+	//Creation de l'annuaire  
+	Registry reg = LocateRegistry.createRegistry(1099);
+	//Enregistrement dans l'annuaire de l'objet
+	reg.rebind(nom du service,s);
+    }
+}
