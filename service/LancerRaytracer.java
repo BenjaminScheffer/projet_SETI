@@ -1,64 +1,98 @@
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
+import java.rmi.RemoteException;
 import java.time.Duration;
-
-import raytracer.Disp;
 import raytracer.Scene;
 import raytracer.Image;
+import raytracer.Disp;
 
-public class LancerRaytracer {
+public class LancerRaytracer implements ServiceDistributeur {
 
-    public static String aide = "Raytracer : synthèse d'image par lancé de rayons (https://en.wikipedia.org/wiki/Ray_tracing_(graphics))\n\nUsage : java LancerRaytracer [fichier-scène] [largeur] [hauteur]\n\tfichier-scène : la description de la scène (par défaut simple.txt)\n\tlargeur : largeur de l'image calculée (par défaut 512)\n\thauteur : hauteur de l'image calculée (par défaut 512)\n";
-     
-    public static void main(String args[]){
+    private List<ServiceCalcul> machines = new ArrayList<>();
 
-        // Le fichier de description de la scène si pas fournie
-        String fichier_description="simple.txt";
+    public LancerRaytracer() {
+    }
 
-        // largeur et hauteur par défaut de l'image à reconstruire
-        int largeur = 512, hauteur = 512;
-        
-        if(args.length > 0){
-            fichier_description = args[0];
-            if(args.length > 1){
-                largeur = Integer.parseInt(args[1]);
-                if(args.length > 2)
-                    hauteur = Integer.parseInt(args[2]);
-            }
-        }else{
-            System.out.println(aide);
-        }
-        
-   
-        // création d'une fenêtre 
-        Disp disp = new Disp("Raytracer", largeur, hauteur);
-        
-        // Initialisation d'une scène depuis le modèle 
-        Scene scene = new Scene(fichier_description, largeur, hauteur);
-        
-        // Calcul de l'image de la scène les paramètres : 
-        // - x0 et y0 : correspondant au coin haut à gauche
-        // - l et h : hauteur et largeur de l'image calculée
-        // Ici on calcule toute l'image (0,0) -> (largeur, hauteur)
-        
+    @Override
+    public void enregistrerClient(ServiceCalcul service) throws RemoteException, InterruptedException {
+        machines.add(service);
+        System.out.println("Nouveau service calcul ajouté, Total: " + machines.size());
+    }
+
+    @Override
+    public void faireCalcul(ServiceLocal clientDisplay, Scene scene, int l, int h)
+            throws RemoteException, InterruptedException {
+
         int x0 = 0, y0 = 0;
-        int l = largeur, h = hauteur;
-                
-        // Chronométrage du temps de calcul
         Instant debut = Instant.now();
-        System.out.println("Calcul de l'image :\n - Coordonnées : "+x0+","+y0
-                           +"\n - Taille "+ largeur + "x" + hauteur);
-        Image image = scene.compute(x0, y0, l/2, h/2);
-        Image image2 = scene.compute(l/2, h/2, l/2, h/2);
+        System.out.println("Calcul de l'image :\n - Coordonnées : " + x0 + "," + y0
+                + "\n - Taille " + l + "x" + h);
+
+        if (machines.size() == 0) {
+            throw new RemoteException("Aucun service de calcul disponible pour effectuer le calcul.");
+        }
+
+        int indexMachine = 0;
+
+        for (int i = 0; i < l; i = i + 50) {
+            final int indexi = i;
+            for (int j = 0; j < h; j = j + 50) {
+                final int indexj = j;
+                final int indexMachineFinal = indexMachine;
+                indexMachine = (indexMachine + 1) % machines.size(); // Tourne sur les machines disponibles
+
+                Thread t = new Thread() {
+                    public void run() {
+                        try {
+                            ServiceCalcul serviceCalcul;
+                            // Synchronisation pour éviter d'accéder à la liste des machines en même temps
+                            synchronized (machines) {
+                                if (indexMachineFinal >= machines.size()) {
+                                    // Calcul localement si l'index n'est plus valide
+                                    throw new IndexOutOfBoundsException("Service de calcul non disponible");
+                                }
+                                serviceCalcul = machines.get(indexMachineFinal);
+                            }
+
+                            // Appel du service de calcul pour obtenir l'image
+                            Image image = serviceCalcul.calculerImage(scene, indexi, indexj, 50, 50);
+                            ImageEnvoyer imageEnvoyer = new ImageEnvoyer(image, indexi, indexj);
+
+                            try {
+                                clientDisplay.recevoirImage(imageEnvoyer);
+                            } catch (Exception e) {
+                                System.out.println("Erreur pendant l'envoi au client: " + e.getMessage());
+                            }
+                        } catch (Exception e) {
+                            synchronized (machines) {
+                                try {
+                                    machines.remove(indexMachineFinal);
+                                    System.out.println("Service de calcul retiré, Total: " + machines.size());
+                                } catch (IndexOutOfBoundsException ex) {
+                                    // Index plus valide, un autre thread a déjà supprimé cette machine
+                                }
+                            }
+
+                            // Calcul par le service central
+                            Image image = scene.compute(indexi, indexj, 50, 50);
+                            System.out.println("Calcul local effectué pour les coordonnées (" + indexi + ", " + indexj + ")");
+                            try {
+                                ImageEnvoyer imageEnvoyer = new ImageEnvoyer(image, indexi, indexj);
+                                clientDisplay.recevoirImage(imageEnvoyer);
+                            } catch (Exception ex) {
+                                System.out.println(
+                                        "Erreur pendant l'envoi au client après calcul local: " + ex.getMessage());
+                            }
+                        }
+                    }
+                };
+                t.start();
+            }
+        }
 
         Instant fin = Instant.now();
-
         long duree = Duration.between(debut, fin).toMillis();
-        
-        System.out.println("Image calculée en :"+duree+" ms");
-        
-        // Affichage de l'image calculée
-        disp.setImage(image, x0, y0);
-        disp.setImage(image2, l/2, h/2);
-
-    }	
+        System.out.println("Image calculée en :" + duree + " ms");
+    }
 }
