@@ -5,7 +5,6 @@ import java.rmi.RemoteException;
 import java.time.Duration;
 import raytracer.Scene;
 import raytracer.Image;
-import raytracer.Disp;
 
 public class LancerRaytracer implements ServiceDistributeur {
 
@@ -81,8 +80,7 @@ public class LancerRaytracer implements ServiceDistributeur {
                                 ImageEnvoyer imageEnvoyer = new ImageEnvoyer(image, indexi, indexj);
                                 clientDisplay.recevoirImage(imageEnvoyer);
                             } catch (Exception ex) {
-                                System.out.println(
-                                        "Erreur pendant l'envoi au client après calcul local: " + ex.getMessage());
+                                System.out.println("Erreur pendant l'envoi au client après calcul local: " + ex.getMessage());
                             }
                         }
                     }
