@@ -4,5 +4,5 @@ import raytracer.Scene;
 import raytracer.Image;
 
 public interface ServiceCalcul extends Remote{
-    public Image calculerImage(Scene s , int indexLongueur,int indexHauteur,int l,int h,int indice)throws RemoteException;
+    public Image calculerImage(Scene s , int indexLongueur,int indexHauteur,int l,int h)throws RemoteException;
 }

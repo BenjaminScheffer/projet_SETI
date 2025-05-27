@@ -5,11 +5,11 @@ import java.rmi.server.UnicastRemoteObject;
 import raytracer.Disp;
 import raytracer.Scene; 
 
-public class Main {    
+public class LancerClient {    
     public static void main (String[] args) {
         try {
-            int width = 2000;
-            int height = 2000;
+            int width = 1000;
+            int height = 1000;
             Disp disp = new Disp("Client", width, height);
             Scene scene = new Scene("simple.txt", width, height);
             
