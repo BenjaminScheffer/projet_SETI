@@ -13,7 +13,7 @@ public class LancerClient {
             Disp disp = new Disp("Client", width, height);
             Scene scene = new Scene("simple.txt", width, height);
             
-            Registry reg = LocateRegistry.getRegistry("10.13.23.250", 1099);
+            Registry reg = LocateRegistry.getRegistry("localhost", 1099);
             ServiceDistributeur distributeur = (ServiceDistributeur) reg.lookup("calculerImage");
             
             RecevoirImage receveurImage = new RecevoirImage(disp);

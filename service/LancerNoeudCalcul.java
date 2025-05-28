@@ -5,7 +5,7 @@ import java.rmi.server.UnicastRemoteObject;
 public class LancerNoeudCalcul {    
     public static void main(String[] args) {
         try {
-            Registry reg = LocateRegistry.getRegistry("10.13.23.250", 1099);
+            Registry reg = LocateRegistry.getRegistry("localhost", 1099);
             ServiceDistributeur distributeur = (ServiceDistributeur) reg.lookup("calculerImage");
             
             ServiceCalculImplementation calculator = new ServiceCalculImplementation();
